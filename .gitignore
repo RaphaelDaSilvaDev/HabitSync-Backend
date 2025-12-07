@@ -1,0 +1,66 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição / pacotes
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Ambiente virtual
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# Configurações de ferramentas
+*.sqlite3
+*.db
+
+# Arquivos de log
+*.log
+
+# Cache do pip
+pip-log.txt
+pip-wheel-metadata/
+wheelhouse/
+
+# Configurações do pytest
+.cache/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+
+# Pydantic (se gerar schemas)
+*.json
+
+# === FastAPI ===
+
+# Diretórios de estática gerados
+staticfiles/
+media/
+
+# Arquivos de configurações sensíveis
+.env
+*.env
+
+# Uvicorn / Gunicorn
+*.pid
+
+# === IDEs ===
+# VSCode
+.vscode/
+
+# PyCh
