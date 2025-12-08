@@ -1,0 +1,54 @@
+[project]
+name = "habitsync"
+version = "0.1.0"
+description = "A habit management API"
+authors = [
+    { name = "Raphael da Silva", email = "raphael.h.silva@protonmail.com" },
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "fastapi[all] (>=0.124.0,<0.125.0)",
+    "uvicorn[standard] (>=0.38.0,<0.39.0)",
+    "sqlalchemy (>=2.0.44,<3.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "alembic (>=1.17.2,<2.0.0)",
+    "passlib (>=1.7.4,<2.0.0)",
+    "bcrypt (==4.0.1)",
+    "python-jose (>=3.5.0,<4.0.0)",
+    "psycopg[binary] (>=3.3.2,<4.0.0)",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = ["taskipy (>=1.14.1,<2.0.0)", "ruff (>=0.14.8,<0.15.0)"]
+
+[tool.poetry]
+package-mode = false
+
+[tool.ruff]
+line-length = 79
+extend-exclude = ['alembic']
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+
+
+[tool.ruff.format]
+preview = true
+quote-style = 'single'
+
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "-p no:warnings"
+
+[tool.taskipy.tasks]
+lint = 'ruff check'
+pre_format = 'ruff check --fix'
+format = 'ruff format'
+run = 'fastapi dev app/main.py'

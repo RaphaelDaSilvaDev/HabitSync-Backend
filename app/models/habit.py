@@ -8,14 +8,16 @@ from app.utils.database import Base
 
 
 class Habit(Base):
-    __tablename__ = "habits"
+    __tablename__ = 'habits'
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        primary_key=True, index=True, autoincrement=True
+    )
     name: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column()
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    frequency: Mapped[list["Day"]] = relationship(
-        secondary=habits_days, back_populates="habits"
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    frequency: Mapped[list['Day']] = relationship(  # noqa: F821
+        secondary=habits_days, back_populates='habits'
     )
     is_active: Mapped[bool] = mapped_column(default=True)
     updated_at: Mapped[datetime] = mapped_column(default=func.now())

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class HabitCreate(BaseModel):
     name: str
-    description: Optional[str] = ""
+    description: Optional[str] = ''
     frequency: list[int]
 
 
@@ -16,7 +16,7 @@ class HabitReturn(BaseModel):
     description: str
     frequency: list[str]
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class HabitConclusionReturn(BaseModel):
@@ -24,7 +24,7 @@ class HabitConclusionReturn(BaseModel):
     habit: HabitReturn
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class HabitConclusionUnmarkReturn(BaseModel):
@@ -34,6 +34,6 @@ class HabitConclusionUnmarkReturn(BaseModel):
 
 
 class HabitUpdate(BaseModel):
-    name: Optional[str] = ""
-    description: Optional[str] = ""
+    name: Optional[str] = ''
+    description: Optional[str] = ''
     frequency: Optional[list[int]] = []

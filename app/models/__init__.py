@@ -4,4 +4,4 @@ from app.models.habit_conclution import HabitConclusion
 from app.models.habit_day import habits_days
 from app.models.user import User
 
-__all__ = ["User", "Habit", "Day", "habits_days", "HabitConclusion"]
+__all__ = ['User', 'Habit', 'Day', 'habits_days', 'HabitConclusion']

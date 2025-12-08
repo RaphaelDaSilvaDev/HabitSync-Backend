@@ -7,8 +7,8 @@ class LoginUser(BaseModel):
 
 
 class LoginReturn(BaseModel):
-    acess_token: str
+    access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = 'bearer'
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}

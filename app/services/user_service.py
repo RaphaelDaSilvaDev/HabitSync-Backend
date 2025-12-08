@@ -2,10 +2,18 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.exceptions.api_exception import APIException
+from app.exceptions.api_exception import (
+    BadRequestException,
+    NotFoundException,
+)
 from app.main import bcrypt_context
 from app.models.user import User
-from app.schemas.user_schema import UserCreate, UserOut, UserOutFull, UserUpdate
+from app.schemas.user_schema import (
+    UserCreate,
+    UserOut,
+    UserOutFull,
+    UserUpdate,
+)
 
 
 class UserService:
@@ -14,7 +22,7 @@ class UserService:
         existing_user = db.query(User).filter(User.email == data.email).first()
 
         if existing_user:
-            raise APIException("Email already registered", status_code=400)
+            raise BadRequestException('Email already registered')
 
         password_hash = bcrypt_context.hash(data.password)
         user = User(
@@ -35,18 +43,18 @@ class UserService:
         existing_user = db.query(User).filter(User.id == id).first()
 
         if not existing_user:
-            raise APIException("User not found", status_code=404)
+            raise NotFoundException('User')
 
         existing_user.username = (
             data.username if data.username else existing_user.username
         )
 
         if data.password and not data.oldpassword:
-            raise APIException("Old password required", status_code=400)
+            raise BadRequestException('Old password required')
         elif data.password and not bcrypt_context.verify(
             data.oldpassword, existing_user.password
         ):
-            raise APIException("Old password not math", status_code=400)
+            raise BadRequestException('Old password not math')
 
         existing_user.password = (
             bcrypt_context.hash(data.password)
@@ -65,10 +73,10 @@ class UserService:
         existing_user = db.query(User).filter(User.id == id).first()
 
         if not existing_user:
-            raise APIException("User not found", status_code=404)
+            raise NotFoundException('User')
 
         if not existing_user.is_active:
-            raise APIException("User alreary deactivate", status_code=400)
+            raise BadRequestException('User alreary deactivate')
 
         existing_user.is_active = False
         existing_user.updated_at = datetime.now()
@@ -83,10 +91,10 @@ class UserService:
         existing_user = db.query(User).filter(User.id == id).first()
 
         if not existing_user:
-            raise APIException("User not found", status_code=404)
+            raise NotFoundException('User')
 
         if existing_user.is_active:
-            raise APIException("User alreary activated", status_code=400)
+            raise BadRequestException('User alreary activated')
 
         existing_user.is_active = True
         existing_user.updated_at = datetime.now()
@@ -101,7 +109,7 @@ class UserService:
         existing_user = db.query(User).filter(User.id == user.id).first()
 
         if not existing_user:
-            raise APIException("User not found", status_code=404)
+            raise NotFoundException('User')
 
         formated_user = UserOut(
             id=existing_user.id,

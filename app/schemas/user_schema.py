@@ -12,9 +12,9 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = ""
-    password: Optional[str] = ""
-    oldpassword: Optional[str] = ""
+    username: Optional[str] = ''
+    password: Optional[str] = ''
+    oldpassword: Optional[str] = ''
 
 
 class UserOut(BaseModel):
@@ -22,7 +22,7 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class UserOutFull(BaseModel):
@@ -32,4 +32,4 @@ class UserOutFull(BaseModel):
     is_admin: bool
     is_active: bool
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
