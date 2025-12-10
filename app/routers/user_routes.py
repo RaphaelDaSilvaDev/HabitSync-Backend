@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 from fastapi.params import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.error_schema import ErrorResponse
@@ -28,7 +28,7 @@ user_router = APIRouter(prefix='/user', tags=['user'])
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def create_user(data: UserCreate, db: Session = Depends(get_db)):
+async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
     created_user = await UserService.create_user(data, db)
     return BaseResponse(
         status='success',
@@ -49,7 +49,7 @@ async def create_user(data: UserCreate, db: Session = Depends(get_db)):
 )
 async def update_user(
     data: UserUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     user: User = Depends(verify_token),
 ):
     updated_user = await UserService.update_user(user.id, data, db)
@@ -71,7 +71,7 @@ async def update_user(
     },
 )
 async def deactivate_user(
-    db: Session = Depends(get_db), user: User = Depends(verify_token)
+    db: AsyncSession = Depends(get_db), user: User = Depends(verify_token)
 ):
     deactivated_user = await UserService.deactivate_user(user.id, db)
     return BaseResponse(
@@ -92,7 +92,7 @@ async def deactivate_user(
     },
 )
 async def activate_user(
-    db: Session = Depends(get_db), user: User = Depends(verify_token)
+    db: AsyncSession = Depends(get_db), user: User = Depends(verify_token)
 ):
     activated_user = await UserService.activate_user(user.id, db)
     return BaseResponse(
@@ -112,7 +112,7 @@ async def activate_user(
     },
 )
 async def get_user_by_id(
-    user: User = Depends(verify_token), db: Session = Depends(get_db)
+    user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
 ):
     user = await UserService.get_user_by_id(user, db)
     return BaseResponse(
@@ -132,7 +132,7 @@ async def get_user_by_id(
     },
     dependencies=[Depends(verify_admin)],
 )
-async def get_all_users(db: Session = Depends(get_db)):
+async def get_all_users(db: AsyncSession = Depends(get_db)):
     all_users = await UserService.get_all_users(db)
     return BaseResponse(
         status='success',

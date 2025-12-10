@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 from fastapi.params import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.authenticate_schema import LoginReturn, LoginUser
@@ -23,7 +23,7 @@ authRouter = APIRouter(prefix='/auth', tags=['auth'])
         status.HTTP_400_BAD_REQUEST: {'model': ErrorResponse},
     },
 )
-async def login(data: LoginUser, db: Session = Depends(get_db)):
+async def login(data: LoginUser, db: AsyncSession = Depends(get_db)):
     user_logged = await AuthService.authenticate_user(data, db)
     return BaseResponse(
         status='success', message='User logged successfully', data=user_logged

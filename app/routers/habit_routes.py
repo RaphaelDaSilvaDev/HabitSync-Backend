@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Query, Response, status
 from fastapi.params import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.error_schema import ErrorResponse
@@ -33,9 +33,9 @@ habit_router = APIRouter(prefix='/habit', tags=['habit'])
 async def create_habit(
     data: HabitCreate,
     user: User = Depends(verify_token),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    created_habit = HabitService.create_habit(data, user, db)
+    created_habit = await HabitService.create_habit(data, user, db)
     return BaseResponse(
         status='success',
         message='Habit created successfully',
@@ -52,7 +52,7 @@ async def create_habit(
     },
 )
 async def get_all_habit_by_user(
-    user: User = Depends(verify_token), db: Session = Depends(get_db)
+    user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
 ):
     all_habits = HabitService.get_habits_by_user_id(user, db)
     return BaseResponse(
@@ -71,7 +71,9 @@ async def get_all_habit_by_user(
     },
 )
 async def delete_habit_by_id(
-    id: int, user: User = Depends(verify_token), db: Session = Depends(get_db)
+    id: int,
+    user: User = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
 ):
     HabitService.delet_habit(id, user, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -90,7 +92,9 @@ async def delete_habit_by_id(
     },
 )
 async def mark_done(
-    id: int, user: User = Depends(verify_token), db: Session = Depends(get_db)
+    id: int,
+    user: User = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
 ):
     habit = HabitService.mark_conclusion(id, user, db)
     return BaseResponse(
@@ -108,7 +112,9 @@ async def mark_done(
     },
 )
 async def unmark_done(
-    id: int, user: User = Depends(verify_token), db: Session = Depends(get_db)
+    id: int,
+    user: User = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
 ):
     HabitService.unmark_conclusion(id, user, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -127,7 +133,7 @@ async def unmark_done(
 async def get_habits_completed_by_day(
     date: date = Query(..., alias='date'),
     user: User = Depends(verify_token),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     completed_habits = HabitService.get_habits_completed_by_day(date, user, db)
     return BaseResponse(
@@ -148,7 +154,7 @@ async def get_habits_completed_by_day(
     },
 )
 async def get_upcoming_habits(
-    user: User = Depends(verify_token), db: Session = Depends(get_db)
+    user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
 ):
     upcoming_habits = HabitService.get_upcoming_habits(user, db)
     return BaseResponse(
@@ -169,7 +175,9 @@ async def get_upcoming_habits(
     },
 )
 async def get_habit_by_id(
-    id: int, user: User = Depends(verify_token), db: Session = Depends(get_db)
+    id: int,
+    user: User = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
 ):
     habit = HabitService.get_habit_by_id(id, user, db)
     return BaseResponse(
@@ -193,7 +201,7 @@ async def update_habit_by_id(
     id: int,
     data: HabitUpdate,
     user: User = Depends(verify_token),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     updated_habit = HabitService.update_habit_by_id(id, data, user, db)
     return BaseResponse(
