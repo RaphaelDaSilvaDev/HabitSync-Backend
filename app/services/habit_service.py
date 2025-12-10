@@ -1,7 +1,8 @@
 from datetime import date, datetime
 
-from sqlalchemy import func, text
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.exceptions.api_exception import (
     BadRequestException,
@@ -15,7 +16,6 @@ from app.models.habit_conclution import HabitConclusion
 from app.models.user import User
 from app.schemas.habit_schema import (
     HabitConclusionReturn,
-    HabitConclusionUnmarkReturn,
     HabitCreate,
     HabitReturn,
     HabitUpdate,
@@ -24,17 +24,23 @@ from app.schemas.habit_schema import (
 
 class HabitService:
     @staticmethod
-    def create_habit(
-        data: HabitCreate, user: User, db: Session
+    async def create_habit(
+        data: HabitCreate, user: User, db: AsyncSession
     ) -> HabitReturn:
-        existing_habit = (
-            db.query(Habit).filter(Habit.name == data.name).first()
+        existing_habit = await db.scalar(
+            select(Habit).where(
+                Habit.name == data.name, Habit.user_id == user.id
+            )
         )
 
         if existing_habit:
             raise BadRequestException('This habit alreary exists')
 
-        days = db.query(Day).filter(Day.id.in_(data.frequency)).all()
+        get_days = await db.scalars(
+            select(Day).where(Day.id.in_(data.frequency))
+        )
+
+        days: list[Day] = get_days.all()
 
         habit = Habit(
             name=data.name,
@@ -44,8 +50,8 @@ class HabitService:
         )
 
         db.add(habit)
-        db.commit()
-        db.refresh(habit)
+        await db.commit()
+        await db.refresh(habit)
         return HabitReturn(
             id=habit.id,
             name=habit.name,
@@ -54,8 +60,14 @@ class HabitService:
         )
 
     @staticmethod
-    def get_habits_by_user_id(user: User, db: Session) -> list[HabitReturn]:
-        all_habits = db.query(Habit).filter(Habit.user_id == user.id).all()
+    async def get_habits_by_user_id(
+        user: User, db: AsyncSession
+    ) -> list[HabitReturn]:
+        get_all_habits = await db.scalars(
+            select(Habit).where(Habit.user_id == user.id)
+        )
+
+        all_habits = get_all_habits.all()
 
         formated_habits = [
             HabitReturn(
@@ -69,8 +81,10 @@ class HabitService:
         return formated_habits
 
     @staticmethod
-    def delet_habit(id: int, user: User, db: Session) -> HabitReturn:
-        existing_habit = db.query(Habit).filter(Habit.id == id).first()
+    async def delet_habit(
+        id: int, user: User, db: AsyncSession
+    ) -> HabitReturn:
+        existing_habit = await db.scalar(select(Habit).where(Habit.id == id))
 
         if not existing_habit:
             raise NotFoundException('Habit')
@@ -78,20 +92,18 @@ class HabitService:
         if existing_habit.user_id != user.id and not user.is_admin:
             raise UnauthorizedException()
 
-        db.delete(existing_habit)
-        db.commit()
-        return HabitReturn(
-            id=existing_habit.id,
-            name=existing_habit.name,
-            description=existing_habit.description,
-            frequency=[day.name for day in existing_habit.frequency],
-        )
+        await db.delete(existing_habit)
+        await db.commit()
 
     @staticmethod
-    def mark_conclusion(
-        id: int, user: User, db: Session
+    async def mark_conclusion(
+        id: int, user: User, db: AsyncSession
     ) -> HabitConclusionReturn:
-        existing_habit = db.query(Habit).filter(Habit.id == id).first()
+        existing_habit = await db.scalar(
+            select(Habit)
+            .options(selectinload(Habit.frequency))
+            .where(Habit.id == id)
+        )
 
         if not existing_habit:
             raise NotFoundException('Habit')
@@ -106,13 +118,11 @@ class HabitService:
         if week_day not in habit_days:
             raise ForbiddenException('This habit is not set for today')
 
-        existing_conclusion = (
-            db.query(HabitConclusion)
-            .filter(
+        existing_conclusion = await db.scalar(
+            select(HabitConclusion).where(
                 HabitConclusion.habit_id == existing_habit.id,
                 text('created_at::date = NOW()::date'),
             )
-            .first()
         )
 
         if existing_conclusion:
@@ -123,7 +133,9 @@ class HabitService:
         conclusion = HabitConclusion(habit_id=existing_habit.id)
 
         db.add(conclusion)
-        db.commit()
+        await db.commit()
+        await db.refresh(conclusion)
+        await db.refresh(existing_habit)
 
         return HabitConclusionReturn(
             id=conclusion.id,
@@ -137,10 +149,8 @@ class HabitService:
         )
 
     @staticmethod
-    def unmark_conclusion(
-        id: int, user: User, db: Session
-    ) -> HabitConclusionUnmarkReturn:
-        existing_habit = db.query(Habit).filter(Habit.id == id).first()
+    async def unmark_conclusion(id: int, user: User, db: AsyncSession):
+        existing_habit = await db.scalar(select(Habit).where(Habit.id == id))
 
         if not existing_habit:
             raise NotFoundException('Habit')
@@ -148,29 +158,24 @@ class HabitService:
         if existing_habit.user_id != user.id and not user.is_admin:
             raise UnauthorizedException()
 
-        existing_conclusion = (
-            db.query(HabitConclusion)
-            .filter(
+        existing_conclusion = await db.scalar(
+            select(HabitConclusion).where(
                 HabitConclusion.habit_id == existing_habit.id,
                 text('created_at::date = NOW()::date'),
             )
-            .first()
         )
 
         if not existing_conclusion:
             raise BadRequestException('This habit was not conclusion yet')
 
-        db.delete(existing_conclusion)
-        db.commit()
-        return HabitConclusionUnmarkReturn(
-            id=existing_conclusion.id,
-            habit_id=existing_habit.id,
-            habit=existing_habit.name,
-        )
+        await db.delete(existing_conclusion)
+        await db.commit()
 
     @staticmethod
-    def get_habit_by_id(id: int, user: User, db: Session) -> HabitReturn:
-        existing_habit = db.query(Habit).filter(Habit.id == id).first()
+    async def get_habit_by_id(
+        id: int, user: User, db: AsyncSession
+    ) -> HabitReturn:
+        existing_habit = await db.scalar(select(Habit).where(Habit.id == id))
 
         if not existing_habit:
             raise NotFoundException('Habit')
@@ -186,10 +191,10 @@ class HabitService:
         )
 
     @staticmethod
-    def update_habit_by_id(
-        id: int, data: HabitUpdate, user: User, db: Session
+    async def update_habit_by_id(
+        id: int, data: HabitUpdate, user: User, db: AsyncSession
     ) -> HabitReturn:
-        existing_habit = db.query(Habit).filter(Habit.id == id).first()
+        existing_habit = await db.scalar(select(Habit).where(Habit.id == id))
 
         if not existing_habit:
             raise NotFoundException('Habit')
@@ -205,12 +210,15 @@ class HabitService:
         )
 
         if data.frequency:
-            days = db.query(Day).filter(Day.id.in_(data.frequency)).all()
+            get_days = await db.scalars(
+                select(Day).where(Day.id.in_(data.frequency))
+            )
+            days = get_days.all()
             existing_habit.frequency = days
 
         db.add(existing_habit)
-        db.commit()
-        db.refresh(existing_habit)
+        await db.commit()
+        await db.refresh(existing_habit)
 
         return HabitReturn(
             id=existing_habit.id,
@@ -220,19 +228,21 @@ class HabitService:
         )
 
     @staticmethod
-    def get_habits_completed_by_day(
-        date: date, user: User, db: Session
+    async def get_habits_completed_by_day(
+        date: date, user: User, db: AsyncSession
     ) -> list[HabitReturn]:
-        habits_completed = (
-            db.query(Habit, HabitConclusion)
+        get_habits_completed = await db.scalars(
+            select(Habit, HabitConclusion)
+            .options(selectinload(Habit.frequency))
             .join(Habit, Habit.id == HabitConclusion.habit_id)
-            .filter(
+            .where(
                 text('date(habits_conclusion.created_at) = date(:date)'),
                 Habit.user_id == user.id,
             )
             .params(date=date)
-            .all()
         )
+
+        habits_completed = get_habits_completed.all()
 
         formated_habits = [
             HabitReturn(
@@ -241,28 +251,33 @@ class HabitService:
                 description=habit.description,
                 frequency=[day.name for day in habit.frequency],
             )
-            for habit, _ in habits_completed
+            for habit in habits_completed
         ]
 
         return formated_habits
 
     @staticmethod
-    def get_upcoming_habits(user: User, db: Session) -> list[HabitReturn]:
+    async def get_upcoming_habits(
+        user: User, db: AsyncSession
+    ) -> list[HabitReturn]:
         week_day = (datetime.now().weekday() + 1) % 7 + 1
-        upcoming_habits = (
-            db.query(Habit)
+        get_upcoming_habits = await db.scalars(
+            select(Habit)
+            .options(selectinload(Habit.frequency))
             .outerjoin(
                 HabitConclusion,
                 (HabitConclusion.habit_id == Habit.id)
                 & (func.date(HabitConclusion.created_at) == func.date('now')),
             )
             .join(Habit.frequency)
-            .filter(
+            .where(
                 Habit.user_id == user.id,
                 HabitConclusion.id.is_(None),
                 Day.id == week_day,
             )
-        ).all()
+        )
+
+        upcoming_habits = get_upcoming_habits.all()
 
         formated_habits = [
             HabitReturn(

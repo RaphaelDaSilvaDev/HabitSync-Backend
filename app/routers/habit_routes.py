@@ -1,4 +1,4 @@
-from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 from fastapi.params import Depends
@@ -15,10 +15,13 @@ from app.schemas.habit_schema import (
 )
 from app.schemas.response import BaseResponse
 from app.services.habit_service import HabitService
-from app.utils.auth_login import verify_token
 from app.utils.database import get_db
+from app.utils.security import verify_token
 
 habit_router = APIRouter(prefix='/habit', tags=['habit'])
+
+Session = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(verify_token)]
 
 
 @habit_router.post(
@@ -32,14 +35,14 @@ habit_router = APIRouter(prefix='/habit', tags=['habit'])
 )
 async def create_habit(
     data: HabitCreate,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    created_habit = await HabitService.create_habit(data, user, db)
+    response = await HabitService.create_habit(data, user, db)
     return BaseResponse(
         status='success',
         message='Habit created successfully',
-        data=created_habit,
+        data=response,
     )
 
 
@@ -51,14 +54,12 @@ async def create_habit(
         status.HTTP_200_OK: {'model': BaseResponse[list[HabitReturn]]},
     },
 )
-async def get_all_habit_by_user(
-    user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
-):
-    all_habits = HabitService.get_habits_by_user_id(user, db)
+async def get_all_habit_by_user(user: CurrentUser, db: Session):
+    response = await HabitService.get_habits_by_user_id(user, db)
     return BaseResponse(
         status='success',
         message='Get all habit for this user',
-        data=all_habits,
+        data=response,
     )
 
 
@@ -72,10 +73,10 @@ async def get_all_habit_by_user(
 )
 async def delete_habit_by_id(
     id: int,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    HabitService.delet_habit(id, user, db)
+    await HabitService.delet_habit(id, user, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -93,12 +94,14 @@ async def delete_habit_by_id(
 )
 async def mark_done(
     id: int,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    habit = HabitService.mark_conclusion(id, user, db)
+    response = await HabitService.mark_conclusion(id, user, db)
     return BaseResponse(
-        status='success', message='Habit marked done successfully', data=habit
+        status='success',
+        message='Habit marked done successfully',
+        data=response,
     )
 
 
@@ -113,10 +116,10 @@ async def mark_done(
 )
 async def unmark_done(
     id: int,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    HabitService.unmark_conclusion(id, user, db)
+    await HabitService.unmark_conclusion(id, user, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -131,15 +134,15 @@ async def unmark_done(
     },
 )
 async def get_habits_completed_by_day(
-    date: date = Query(..., alias='date'),
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
+    date=Query(..., alias='date'),
 ):
-    completed_habits = HabitService.get_habits_completed_by_day(date, user, db)
+    response = await HabitService.get_habits_completed_by_day(date, user, db)
     return BaseResponse(
         status='success',
         message=f'Habits completed in date {date}',
-        data=completed_habits,
+        data=response,
     )
 
 
@@ -153,12 +156,10 @@ async def get_habits_completed_by_day(
         },
     },
 )
-async def get_upcoming_habits(
-    user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
-):
-    upcoming_habits = HabitService.get_upcoming_habits(user, db)
+async def get_upcoming_habits(user: CurrentUser, db: Session):
+    response = await HabitService.get_upcoming_habits(user, db)
     return BaseResponse(
-        status='success', message='Habits upcoming today', data=upcoming_habits
+        status='success', message='Habits upcoming today', data=response
     )
 
 
@@ -176,12 +177,12 @@ async def get_upcoming_habits(
 )
 async def get_habit_by_id(
     id: int,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    habit = HabitService.get_habit_by_id(id, user, db)
+    response = await HabitService.get_habit_by_id(id, user, db)
     return BaseResponse(
-        status='success', message='Habit return successfully', data=habit
+        status='success', message='Habit return successfully', data=response
     )
 
 
@@ -200,12 +201,12 @@ async def get_habit_by_id(
 async def update_habit_by_id(
     id: int,
     data: HabitUpdate,
-    user: User = Depends(verify_token),
-    db: AsyncSession = Depends(get_db),
+    user: CurrentUser,
+    db: Session,
 ):
-    updated_habit = HabitService.update_habit_by_id(id, data, user, db)
+    response = await HabitService.update_habit_by_id(id, data, user, db)
     return BaseResponse(
         status='success',
         message='Habit updated successfully',
-        data=updated_habit,
+        data=response,
     )
