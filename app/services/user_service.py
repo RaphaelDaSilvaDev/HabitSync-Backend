@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.exceptions.api_exception import (
@@ -18,8 +19,10 @@ from app.schemas.user_schema import (
 
 class UserService:
     @staticmethod
-    def create_user(data: UserCreate, db: Session) -> User:
-        existing_user = db.query(User).filter(User.email == data.email).first()
+    async def create_user(data: UserCreate, db: Session) -> User:
+        existing_user = await db.scalar(
+            select(User).where(User.email == data.email)
+        )
 
         if existing_user:
             raise BadRequestException('Email already registered')
@@ -29,18 +32,20 @@ class UserService:
             username=data.username,
             email=data.email,
             password=password_hash,
-            admin=data.is_admin,
-            active=data.is_active,
+            is_admin=data.is_admin,
+            is_active=data.is_active,
         )
 
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         return user
 
     @staticmethod
-    def update_user(id: int, data: UserUpdate, db: Session) -> User:
-        existing_user = db.query(User).filter(User.id == id).first()
+    async def update_user(id: int, data: UserUpdate, db: Session) -> User:
+        existing_user: User = await db.scalar(
+            select(User).where(User.id == id)
+        )
 
         if not existing_user:
             raise NotFoundException('User')
@@ -64,13 +69,15 @@ class UserService:
         existing_user.updated_at = datetime.now()
 
         db.add(existing_user)
-        db.commit()
-        db.refresh(existing_user)
+        await db.commit()
+        await db.refresh(existing_user)
         return existing_user
 
     @staticmethod
-    def deactivate_user(id: int, db: Session) -> User:
-        existing_user = db.query(User).filter(User.id == id).first()
+    async def deactivate_user(id: int, db: Session) -> User:
+        existing_user: User = await db.scalar(
+            select(User).where(User.id == id)
+        )
 
         if not existing_user:
             raise NotFoundException('User')
@@ -81,14 +88,13 @@ class UserService:
         existing_user.is_active = False
         existing_user.updated_at = datetime.now()
 
-        db.add(existing_user)
-        db.commit()
-        db.refresh(existing_user)
+        await db.commit()
+        await db.refresh(existing_user)
         return existing_user
 
     @staticmethod
-    def activate_user(id: int, db: Session) -> User:
-        existing_user = db.query(User).filter(User.id == id).first()
+    async def activate_user(id: int, db: Session) -> User:
+        existing_user = await db.scalar(select(User).where(User.id == id))
 
         if not existing_user:
             raise NotFoundException('User')
@@ -99,14 +105,13 @@ class UserService:
         existing_user.is_active = True
         existing_user.updated_at = datetime.now()
 
-        db.add(existing_user)
-        db.commit()
-        db.refresh(existing_user)
+        await db.commit()
+        await db.refresh(existing_user)
         return existing_user
 
     @staticmethod
-    def get_user_by_id(user: User, db: Session) -> UserOut:
-        existing_user = db.query(User).filter(User.id == user.id).first()
+    async def get_user_by_id(user: User, db: Session) -> UserOut:
+        existing_user = await db.scalar(select(User).where(User.id == user.id))
 
         if not existing_user:
             raise NotFoundException('User')
@@ -122,8 +127,9 @@ class UserService:
     # Administrative Services
 
     @staticmethod
-    def get_all_users(db: Session) -> list[UserOutFull]:
-        all_users = db.query(User).all()
+    async def get_all_users(db: Session) -> list[UserOutFull]:
+        result = await db.scalars(select(User))
+        all_users = result.all()
 
         formated_users = [
             UserOutFull(

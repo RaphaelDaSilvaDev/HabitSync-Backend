@@ -29,7 +29,7 @@ user_router = APIRouter(prefix='/user', tags=['user'])
     },
 )
 async def create_user(data: UserCreate, db: Session = Depends(get_db)):
-    created_user = UserService.create_user(data, db)
+    created_user = await UserService.create_user(data, db)
     return BaseResponse(
         status='success',
         message='User created successfully',
@@ -52,7 +52,7 @@ async def update_user(
     db: Session = Depends(get_db),
     user: User = Depends(verify_token),
 ):
-    updated_user = UserService.update_user(user.id, data, db)
+    updated_user = await UserService.update_user(user.id, data, db)
     return BaseResponse(
         status='success',
         message='User updated successfully',
@@ -73,7 +73,7 @@ async def update_user(
 async def deactivate_user(
     db: Session = Depends(get_db), user: User = Depends(verify_token)
 ):
-    deactivated_user = UserService.deactivate_user(user.id, db)
+    deactivated_user = await UserService.deactivate_user(user.id, db)
     return BaseResponse(
         status='success',
         message='User deactivated successfully',
@@ -94,7 +94,7 @@ async def deactivate_user(
 async def activate_user(
     db: Session = Depends(get_db), user: User = Depends(verify_token)
 ):
-    activated_user = UserService.activate_user(user.id, db)
+    activated_user = await UserService.activate_user(user.id, db)
     return BaseResponse(
         status='success',
         message='User activated successfully',
@@ -114,7 +114,7 @@ async def activate_user(
 async def get_user_by_id(
     user: User = Depends(verify_token), db: Session = Depends(get_db)
 ):
-    user = UserService.get_user_by_id(user, db)
+    user = await UserService.get_user_by_id(user, db)
     return BaseResponse(
         status='success', message='User returned successfully', data=user
     )
@@ -133,7 +133,7 @@ async def get_user_by_id(
     dependencies=[Depends(verify_admin)],
 )
 async def get_all_users(db: Session = Depends(get_db)):
-    all_users = UserService.get_all_users(db)
+    all_users = await UserService.get_all_users(db)
     return BaseResponse(
         status='success',
         message='All user returned successfully',

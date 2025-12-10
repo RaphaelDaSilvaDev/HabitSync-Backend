@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.params import Depends
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.exceptions.api_exception import UnauthorizedException
@@ -30,13 +31,13 @@ class AuthLogin:
         return jwt_token
 
 
-def verify_token(
+async def verify_token(
     token: str = Depends(oauth2_schema), db: Session = Depends(get_db)
 ):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
         user_id: int = int(payload.get('sub'))
-        user = db.query(User).filter(User.id == user_id).first()
+        user = await db.scalar(select(User).where(User.id == user_id))
 
         if not user:
             raise UnauthorizedException('Invalid token or user does not exist')

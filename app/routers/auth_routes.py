@@ -24,7 +24,7 @@ authRouter = APIRouter(prefix='/auth', tags=['auth'])
     },
 )
 async def login(data: LoginUser, db: Session = Depends(get_db)):
-    user_logged = AuthService.authenticate_user(data, db)
+    user_logged = await AuthService.authenticate_user(data, db)
     return BaseResponse(
         status='success', message='User logged successfully', data=user_logged
     )

@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.exceptions.api_exception import BadRequestException
@@ -12,8 +13,8 @@ from app.utils.auth_login import AuthLogin
 
 class AuthService:
     @staticmethod
-    def authenticate_user(data: LoginUser, db: Session) -> LoginReturn:
-        user = db.query(User).filter(User.email == data.email).first()
+    async def authenticate_user(data: LoginUser, db: Session) -> LoginReturn:
+        user = await db.scalar(select(User).where(User.email == data.email))
 
         if not user:
             raise BadRequestException('Invalid email or password')
