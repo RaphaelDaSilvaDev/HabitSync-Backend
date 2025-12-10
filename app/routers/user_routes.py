@@ -111,10 +111,10 @@ async def activate_user(
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def get_user_by_id(
+async def get_user(
     user: User = Depends(verify_token), db: AsyncSession = Depends(get_db)
 ):
-    user = await UserService.get_user_by_id(user, db)
+    user = await UserService.get_user(user, db)
     return BaseResponse(
         status='success', message='User returned successfully', data=user
     )

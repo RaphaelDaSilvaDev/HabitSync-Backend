@@ -55,9 +55,11 @@ async def test_create_user_with_same_email(client):
 
 
 @pytest.mark.asyncio
-async def test_update_user(client_with_user, user):
-    response = await client_with_user.patch(
-        '/user/update', json={'username': 'John Doe'}
+async def test_update_user(client, user, token):
+    response = await client.patch(
+        '/user/update',
+        json={'username': 'John Doe'},
+        headers={'Authorization': f'Bearer {token}'},
     )
 
     response_schema = BaseResponse[UserOut].model_validate(response.json())
@@ -71,9 +73,11 @@ async def test_update_user(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_update_user_with_password(client_with_user, user):
-    response = await client_with_user.patch(
-        '/user/update', json={'password': 'secret', 'oldpassword': 'secret'}
+async def test_update_user_with_password(client, user, token):
+    response = await client.patch(
+        '/user/update',
+        json={'password': 'secret', 'oldpassword': 'secret'},
+        headers={'Authorization': f'Bearer {token}'},
     )
 
     response_schema = BaseResponse[UserOut].model_validate(response.json())
@@ -87,24 +91,11 @@ async def test_update_user_with_password(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_update_user_not_found(
-    client_with_user, user_with_invalid_credentials
-):
-    response = await client_with_user.patch(
-        '/user/update', json={'username': 'John Doe'}
-    )
-
-    response_schema = BaseResponse.model_validate(response.json())
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response_schema.status == 'error'
-    assert response_schema.message == 'User not found'
-
-
-@pytest.mark.asyncio
-async def test_update_user_without_old_password(client_with_user, user):
-    response = await client_with_user.patch(
-        '/user/update', json={'password': 'secret'}
+async def test_update_user_without_old_password(client, user, token):
+    response = await client.patch(
+        '/user/update',
+        json={'password': 'secret'},
+        headers={'Authorization': f'Bearer {token}'},
     )
 
     response_schema = BaseResponse.model_validate(response.json())
@@ -115,9 +106,11 @@ async def test_update_user_without_old_password(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_update_user_with_no_match_password(client_with_user, user):
-    response = await client_with_user.patch(
-        '/user/update', json={'password': 'secret', 'oldpassword': 'pass'}
+async def test_update_user_with_no_match_password(client, user, token):
+    response = await client.patch(
+        '/user/update',
+        json={'password': 'secret', 'oldpassword': 'pass'},
+        headers={'Authorization': f'Bearer {token}'},
     )
 
     response_schema = BaseResponse.model_validate(response.json())
@@ -128,8 +121,11 @@ async def test_update_user_with_no_match_password(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_deactivate_user(client_with_user, user):
-    response = await client_with_user.put('/user/deactivate')
+async def test_deactivate_user(client, user, token):
+    response = await client.put(
+        '/user/deactivate',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse[UserOut].model_validate(response.json())
 
@@ -142,23 +138,12 @@ async def test_deactivate_user(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_deactivate_user_not_found(
-    client_with_user, user_with_invalid_credentials
-):
-    response = await client_with_user.put('/user/deactivate')
-
-    response_schema = BaseResponse.model_validate(response.json())
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response_schema.status == 'error'
-    assert response_schema.message == 'User not found'
-
-
-@pytest.mark.asyncio
-async def test_deactivate_user_already_deactivated(
-    client_deactivated, user_deactivated
-):
-    response = await client_deactivated.put('/user/deactivate')
+@pytest.mark.parametrize('user', [{'is_active': False}], indirect=True)
+async def test_deactivate_user_already_deactivated(client, user, token):
+    response = await client.put(
+        '/user/deactivate',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse.model_validate(response.json())
 
@@ -168,8 +153,12 @@ async def test_deactivate_user_already_deactivated(
 
 
 @pytest.mark.asyncio
-async def test_activate_user(client_deactivated, user_deactivated):
-    response = await client_deactivated.put('/user/activate')
+@pytest.mark.parametrize('user', [{'is_active': False}], indirect=True)
+async def test_activate_user(client, user, token):
+    response = await client.put(
+        '/user/activate',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse[UserOut].model_validate(response.json())
 
@@ -182,21 +171,11 @@ async def test_activate_user(client_deactivated, user_deactivated):
 
 
 @pytest.mark.asyncio
-async def test_activate_user_not_found(
-    client_with_user, user_with_invalid_credentials
-):
-    response = await client_with_user.put('/user/activate')
-
-    response_schema = BaseResponse.model_validate(response.json())
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response_schema.status == 'error'
-    assert response_schema.message == 'User not found'
-
-
-@pytest.mark.asyncio
-async def test_activate_user_already_activated(client_with_user, user):
-    response = await client_with_user.put('/user/activate')
+async def test_activate_user_already_activated(client, user, token):
+    response = await client.put(
+        '/user/activate',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse.model_validate(response.json())
 
@@ -206,8 +185,11 @@ async def test_activate_user_already_activated(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id(client_with_user, user):
-    response = await client_with_user.get('/user/')
+async def test_get_user(client, user, token):
+    response = await client.get(
+        '/user/',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse[UserOut].model_validate(response.json())
 
@@ -220,21 +202,12 @@ async def test_get_user_by_id(client_with_user, user):
 
 
 @pytest.mark.asyncio
-async def test_get_user_not_found(
-    client_with_user, user_with_invalid_credentials
-):
-    response = await client_with_user.get('/user/')
-
-    response_schema = BaseResponse.model_validate(response.json())
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response_schema.status == 'error'
-    assert response_schema.message == 'User not found'
-
-
-@pytest.mark.asyncio
-async def test_get_all_users(client_with_admin, user_admin):
-    response = await client_with_admin.get('/user/all-users')
+@pytest.mark.parametrize('user', [{'is_admin': True}], indirect=True)
+async def test_get_all_users(client, user, token):
+    response = await client.get(
+        '/user/all-users',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     response_schema = BaseResponse[list[UserOutFull]].model_validate(
         response.json()

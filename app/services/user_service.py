@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.api_exception import (
     BadRequestException,
-    NotFoundException,
 )
 from app.main import bcrypt_context
 from app.models.user import User
@@ -47,9 +46,6 @@ class UserService:
             select(User).where(User.id == id)
         )
 
-        if not existing_user:
-            raise NotFoundException('User')
-
         existing_user.username = (
             data.username if data.username else existing_user.username
         )
@@ -79,9 +75,6 @@ class UserService:
             select(User).where(User.id == id)
         )
 
-        if not existing_user:
-            raise NotFoundException('User')
-
         if not existing_user.is_active:
             raise BadRequestException('User alreary deactivate')
 
@@ -96,9 +89,6 @@ class UserService:
     async def activate_user(id: int, db: Session) -> User:
         existing_user = await db.scalar(select(User).where(User.id == id))
 
-        if not existing_user:
-            raise NotFoundException('User')
-
         if existing_user.is_active:
             raise BadRequestException('User alreary activated')
 
@@ -110,11 +100,8 @@ class UserService:
         return existing_user
 
     @staticmethod
-    async def get_user_by_id(user: User, db: Session) -> UserOut:
+    async def get_user(user: User, db: Session) -> UserOut:
         existing_user = await db.scalar(select(User).where(User.id == user.id))
-
-        if not existing_user:
-            raise NotFoundException('User')
 
         formated_user = UserOut(
             id=existing_user.id,

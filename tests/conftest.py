@@ -12,9 +12,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from app.main import app
+from app.main import app, bcrypt_context
 from app.models import User
-from app.utils.auth_login import verify_token
+from app.schemas.authenticate_schema import LoginReturn
+from app.schemas.response import BaseResponse
 from app.utils.database import Base, get_db
 
 
@@ -27,82 +28,6 @@ async def client(session):
         transport=ASGITransport(app=app), base_url='http://test'
     ) as client:
         app.dependency_overrides[get_db] = get_session_override
-        yield client
-
-    app.dependency_overrides.clear()
-
-
-@pytest_asyncio.fixture
-async def client_with_user(session, user):
-    async def get_session_override():
-        return session
-
-    async def get_token_override():
-        return user
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url='http://test'
-    ) as client:
-        app.dependency_overrides[get_db] = get_session_override
-        app.dependency_overrides[verify_token] = get_token_override
-        yield client
-
-    app.dependency_overrides.clear()
-
-
-@pytest_asyncio.fixture
-async def client_with_admin(session, user_admin):
-    async def get_session_override():
-        return session
-
-    async def get_token_override():
-        return user_admin
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url='http://test'
-    ) as client:
-        app.dependency_overrides[get_db] = get_session_override
-        app.dependency_overrides[verify_token] = get_token_override
-        yield client
-
-    app.dependency_overrides.clear()
-
-
-@pytest_asyncio.fixture
-async def client_deactivated(session, user_deactivated):
-    async def get_session_override():
-        return session
-
-    async def get_token_override():
-        return user_deactivated
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url='http://test'
-    ) as client:
-        app.dependency_overrides[get_db] = get_session_override
-        app.dependency_overrides[verify_token] = get_token_override
-        yield client
-
-    app.dependency_overrides.clear()
-
-
-@pytest_asyncio.fixture
-async def user_with_invalid_credentials(session):
-    class FakeUser:
-        id = 9999  # ID inexistente
-        is_admin = True
-
-    async def get_session_override():
-        return session
-
-    async def get_token_override():
-        return FakeUser()
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url='http://test'
-    ) as client:
-        app.dependency_overrides[get_db] = get_session_override
-        app.dependency_overrides[verify_token] = get_token_override
         yield client
 
     app.dependency_overrides.clear()
@@ -148,47 +73,39 @@ def mock_db_time():
 
 
 @pytest_asyncio.fixture
-async def user(session: AsyncSession):
+async def user(
+    request,
+    session: AsyncSession,
+):
+    params = getattr(request, 'param', {})
+    is_active = params.get('is_active', True)
+    is_admin = params.get('is_admin', False)
+
+    password = 'secret'
     user: User = User(
         username='John',
         email='john@doe.com',
-        password='$2a$12$lrO3cQbMMTiVDyxbFbQjOux.rwtUhdaE6CMwLFRaSJPuOaH6OqzFm',
+        password=bcrypt_context.hash(password),
+        is_active=is_active,
+        is_admin=is_admin,
     )
 
     session.add(user)
     await session.commit()
     await session.refresh(user)
+
+    user.clean_password = password
 
     return user
 
 
 @pytest_asyncio.fixture
-async def user_admin(session: AsyncSession):
-    user: User = User(
-        username='John',
-        email='john@doe.com',
-        password='$2a$12$lrO3cQbMMTiVDyxbFbQjOux.rwtUhdaE6CMwLFRaSJPuOaH6OqzFm',
-        is_admin=True,
+async def token(client, user):
+    response = await client.post(
+        '/auth/login',
+        json={'email': user.email, 'password': user.clean_password},
     )
 
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
+    response_schema = BaseResponse[LoginReturn].model_validate(response.json())
 
-    return user
-
-
-@pytest_asyncio.fixture
-async def user_deactivated(session: AsyncSession):
-    user: User = User(
-        username='John',
-        email='john@doe.com',
-        password='$2a$12$lrO3cQbMMTiVDyxbFbQjOux.rwtUhdaE6CMwLFRaSJPuOaH6OqzFm',
-        is_active=False,
-    )
-
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
-
-    return user
+    return response_schema.data.access_token
