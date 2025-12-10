@@ -215,7 +215,7 @@ async def test_get_all_users(client, user, token):
 
     assert response.status_code == HTTPStatus.OK
     assert response_schema.status == 'success'
-    assert response_schema.message == 'All user returned successfully'
+    assert response_schema.message == 'All users returned successfully'
     assert len(response_schema.data) == 1
     assert response_schema.data[0].id == 1
     assert response_schema.data[0].username == 'John'

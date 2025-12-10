@@ -12,11 +12,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from app.main import app, bcrypt_context
+from app.main import app
 from app.models import User
 from app.schemas.authenticate_schema import LoginReturn
 from app.schemas.response import BaseResponse
 from app.utils.database import Base, get_db
+from app.utils.security import bcrypt_context
 
 
 @pytest_asyncio.fixture

@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, status
 from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,10 +10,13 @@ from app.schemas.error_schema import ErrorResponse
 from app.schemas.response import BaseResponse
 from app.schemas.token_schema import RefreshTokenResponse
 from app.services.auth_service import AuthService
-from app.utils.auth_login import verify_token
 from app.utils.database import get_db
+from app.utils.security import verify_token
 
 authRouter = APIRouter(prefix='/auth', tags=['auth'])
+
+Session = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(verify_token)]
 
 
 @authRouter.post(
@@ -23,10 +28,10 @@ authRouter = APIRouter(prefix='/auth', tags=['auth'])
         status.HTTP_400_BAD_REQUEST: {'model': ErrorResponse},
     },
 )
-async def login(data: LoginUser, db: AsyncSession = Depends(get_db)):
-    user_logged = await AuthService.authenticate_user(data, db)
+async def login(data: LoginUser, db: Session):
+    response = await AuthService.authenticate_user(data, db)
     return BaseResponse(
-        status='success', message='User logged successfully', data=user_logged
+        status='success', message='User logged successfully', data=response
     )
 
 
@@ -38,7 +43,7 @@ async def login(data: LoginUser, db: AsyncSession = Depends(get_db)):
         status.HTTP_200_OK: {'model': BaseResponse[RefreshTokenResponse]},
     },
 )
-async def refresh_token(user: User = Depends(verify_token)):
+async def refresh_token(user: CurrentUser):
     token = AuthService.refresh_token(user)
     return BaseResponse(
         status='success', message='Token generated successfully', data=token

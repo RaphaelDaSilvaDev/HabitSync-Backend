@@ -6,24 +6,23 @@ from sqlalchemy.orm import Session
 from app.exceptions.api_exception import (
     BadRequestException,
 )
-from app.main import bcrypt_context
 from app.models.user import User
 from app.schemas.user_schema import (
     UserCreate,
-    UserOut,
     UserOutFull,
     UserUpdate,
 )
+from app.utils.security import bcrypt_context
 
 
 class UserService:
     @staticmethod
     async def create_user(data: UserCreate, db: Session) -> User:
-        existing_user = await db.scalar(
+        get_user = await db.scalar(
             select(User).where(User.email == data.email)
         )
 
-        if existing_user:
+        if get_user:
             raise BadRequestException('Email already registered')
 
         password_hash = bcrypt_context.hash(data.password)
@@ -41,75 +40,52 @@ class UserService:
         return user
 
     @staticmethod
-    async def update_user(id: int, data: UserUpdate, db: Session) -> User:
-        existing_user: User = await db.scalar(
-            select(User).where(User.id == id)
-        )
+    async def update_user(user: User, data: UserUpdate, db: Session) -> User:
 
-        existing_user.username = (
-            data.username if data.username else existing_user.username
-        )
+        user.username = data.username if data.username else user.username
 
         if data.password and not data.oldpassword:
             raise BadRequestException('Old password required')
         elif data.password and not bcrypt_context.verify(
-            data.oldpassword, existing_user.password
+            data.oldpassword, user.password
         ):
             raise BadRequestException('Old password not math')
 
-        existing_user.password = (
+        user.password = (
             bcrypt_context.hash(data.password)
             if data.password
-            else existing_user.password
+            else user.password
         )
-        existing_user.updated_at = datetime.now()
+        user.updated_at = datetime.now()
 
-        db.add(existing_user)
+        db.add(user)
         await db.commit()
-        await db.refresh(existing_user)
-        return existing_user
+        await db.refresh(user)
+        return user
 
     @staticmethod
-    async def deactivate_user(id: int, db: Session) -> User:
-        existing_user: User = await db.scalar(
-            select(User).where(User.id == id)
-        )
-
-        if not existing_user.is_active:
+    async def deactivate_user(user: User, db: Session) -> User:
+        if not user.is_active:
             raise BadRequestException('User alreary deactivate')
 
-        existing_user.is_active = False
-        existing_user.updated_at = datetime.now()
+        user.is_active = False
+        user.updated_at = datetime.now()
 
         await db.commit()
-        await db.refresh(existing_user)
-        return existing_user
+        await db.refresh(user)
+        return user
 
     @staticmethod
-    async def activate_user(id: int, db: Session) -> User:
-        existing_user = await db.scalar(select(User).where(User.id == id))
-
-        if existing_user.is_active:
+    async def activate_user(user: User, db: Session) -> User:
+        if user.is_active:
             raise BadRequestException('User alreary activated')
 
-        existing_user.is_active = True
-        existing_user.updated_at = datetime.now()
+        user.is_active = True
+        user.updated_at = datetime.now()
 
         await db.commit()
-        await db.refresh(existing_user)
-        return existing_user
-
-    @staticmethod
-    async def get_user(user: User, db: Session) -> UserOut:
-        existing_user = await db.scalar(select(User).where(User.id == user.id))
-
-        formated_user = UserOut(
-            id=existing_user.id,
-            email=existing_user.email,
-            username=existing_user.username,
-        )
-
-        return formated_user
+        await db.refresh(user)
+        return user
 
     # Administrative Services
 
