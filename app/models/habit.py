@@ -17,7 +17,7 @@ class Habit(Base):
     description: Mapped[str] = mapped_column()
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     frequency: Mapped[list['Day']] = relationship(  # noqa: F821
-        secondary=habits_days, back_populates='habits'
+        secondary=habits_days, back_populates='habits', lazy='selectin'
     )
     is_active: Mapped[bool] = mapped_column(default=True)
     updated_at: Mapped[datetime] = mapped_column(default=func.now())
