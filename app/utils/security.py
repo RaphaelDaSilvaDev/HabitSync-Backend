@@ -47,9 +47,6 @@ async def verify_token(
         user_id: int = int(payload.get('sub'))
         user = await db.scalar(select(User).where(User.id == user_id))
 
-        if not user:
-            raise UnauthorizedException('Invalid token or user does not exist')
-
         return user
     except jwt.ExpiredSignatureError:
         raise UnauthorizedException('Token has expired')

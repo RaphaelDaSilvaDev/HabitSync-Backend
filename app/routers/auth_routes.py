@@ -22,9 +22,9 @@ CurrentUser = Annotated[User, Depends(verify_token)]
 @authRouter.post(
     '/login',
     response_model=BaseResponse[LoginReturn],
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_201_CREATED: {'model': BaseResponse[LoginReturn]},
+        status.HTTP_200_OK: {'model': BaseResponse[LoginReturn]},
         status.HTTP_400_BAD_REQUEST: {'model': ErrorResponse},
     },
 )
