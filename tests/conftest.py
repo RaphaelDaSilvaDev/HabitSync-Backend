@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -14,6 +14,8 @@ from testcontainers.postgres import PostgresContainer
 
 from app.main import app
 from app.models import User
+from app.models.day import Day
+from app.models.habit import Habit
 from app.schemas.authenticate_schema import LoginReturn
 from app.schemas.response import BaseResponse
 from app.utils.database import Base, get_db
@@ -45,6 +47,19 @@ def engine():
 async def session(engine: AsyncEngine):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        await conn.execute(
+            Day.__table__.insert(),
+            [
+                {'id': 1, 'name': 'Domingo'},
+                {'id': 2, 'name': 'Segunda'},
+                {'id': 3, 'name': 'Terça'},
+                {'id': 4, 'name': 'Quarta'},
+                {'id': 5, 'name': 'Quinta'},
+                {'id': 6, 'name': 'Sexta'},
+                {'id': 7, 'name': 'Sábado'},
+            ],
+        )
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
@@ -101,6 +116,33 @@ async def user(
 
 
 @pytest_asyncio.fixture
+async def another_user(
+    request,
+    session: AsyncSession,
+):
+    params = getattr(request, 'param', {})
+    is_active = params.get('is_active', True)
+    is_admin = params.get('is_admin', False)
+
+    password = 'secret'
+    user: User = User(
+        username='Ane',
+        email='ane@doe.com',
+        password=bcrypt_context.hash(password),
+        is_active=is_active,
+        is_admin=is_admin,
+    )
+
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    user.clean_password = password
+
+    return user
+
+
+@pytest_asyncio.fixture
 async def token(client, user):
     response = await client.post(
         '/auth/login',
@@ -110,3 +152,40 @@ async def token(client, user):
     response_schema = BaseResponse[LoginReturn].model_validate(response.json())
 
     return response_schema.data.access_token
+
+
+@pytest_asyncio.fixture
+async def habit(session: AsyncSession, user):
+
+    get_days = await session.scalars(select(Day).where(Day.id.in_([1])))
+    days = get_days.all()
+
+    habit: Habit = Habit(
+        name='Test', description='Test', frequency=days, user_id=user.id
+    )
+
+    session.add(habit)
+    await session.commit()
+    await session.refresh(habit)
+
+    return habit
+
+
+@pytest_asyncio.fixture
+async def habit_another_user(session: AsyncSession, another_user):
+
+    get_days = await session.scalars(select(Day).where(Day.id.in_([1])))
+    days = get_days.all()
+
+    habit: Habit = Habit(
+        name='Test',
+        description='Test',
+        frequency=days,
+        user_id=another_user.id,
+    )
+
+    session.add(habit)
+    await session.commit()
+    await session.refresh(habit)
+
+    return habit

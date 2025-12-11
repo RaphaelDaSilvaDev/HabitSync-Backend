@@ -222,3 +222,20 @@ async def test_get_all_users(client, user, token):
     assert response_schema.data[0].email == 'john@doe.com'
     assert response_schema.data[0].is_admin
     assert response_schema.data[0].is_active
+
+
+@pytest.mark.asyncio
+async def test_get_all_users_non_admin(client, user, token):
+    response = await client.get(
+        '/user/all-users',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    response_schema = BaseResponse.model_validate(response.json())
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response_schema.status == 'error'
+    assert (
+        response_schema.message
+        == 'You do not have permission to perform this action.'
+    )
