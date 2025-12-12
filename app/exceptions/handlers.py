@@ -1,4 +1,7 @@
-from fastapi import HTTPException, Request, status
+from http import HTTPStatus
+
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.exceptions.api_exception import APIException
@@ -14,21 +17,20 @@ async def api_exception_handler(request: Request, exc: APIException):
     )
 
 
-async def not_authendicated_handler(request: Request, exc: HTTPException):
-    if (
-        exc.status_code == status.HTTP_401_UNAUTHORIZED
-        and exc.detail == 'Not authenticated'
-    ):
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                'status': 'error',
-                'message': 'Not authenticated',
-                'data': None,
-            },
-        )
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+):
+    errors = [
+        {
+            'field': '.'.join(str(loc) for loc in err['loc']),
+            'message': err['msg'],
+        }
+        for err in exc.errors()
+    ]
 
     return JSONResponse(
-        status_code=exc.status_code,
-        content={'detail': exc.detail},
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content=BaseResponse(
+            status='error', message='Invalid request data', data=errors
+        ).model_dump(),
     )

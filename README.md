@@ -19,6 +19,7 @@ Construído com **FastAPI**, arquitetura limpa, autenticação JWT e integraçã
 - **Alembic**
 - **PostgreSQL**
 - **Pydantic**
+- **PyTest**
 - **JWT Authentication**
 - **Docker**
 
@@ -32,6 +33,52 @@ Construído com **FastAPI**, arquitetura limpa, autenticação JWT e integraçã
 - 📊 Registro diário e acompanhamento de progresso  
 - 🕒 Histórico completo  
 - 🧩 Arquitetura organizada em módulos (services, repositories, schemas, routers)
+
+---
+
+## 🚏 API Endpoints
+
+| Grupo | Descrição |
+|-------|-----------|
+| Auth  | Login, registro, refresh token |
+| User  | CRUD de usuários |
+| Habit | CRUD de hábitos do usuário |
+
+Documentação completa das rotas:  
+➡️ Veja em [`docs/API.md`](docs/API.md)  
+➡️ Ou acesse a documentação interativa do FastAPI em `/docs`
+
+---
+
+## 🧪 Cobertura de Testes
+
+| Arquivo                                | Stmts | Miss | Cover |
+|----------------------------------------|-------|------|-------|
+| app/exceptions/api_exception.py        | 17    | 0    | 100%  |
+| app/exceptions/handlers.py             | 11    | 0    | 100%  |
+| app/exceptions/middleware.py           | 17    | 7    | 59%   |
+| app/main.py                            | 15    | 0    | 100%  |
+| app/models/day.py                      | 15    | 1    | 93%   |
+| app/models/habit.py                    | 20    | 0    | 100%  |
+| app/models/habit_conclution.py         | 11    | 0    | 100%  |
+| app/models/habit_day.py                | 3     | 0    | 100%  |
+| app/models/user.py                     | 22    | 0    | 100%  |
+| app/routers/auth_routes.py             | 23    | 0    | 100%  |
+| app/routers/habit_routes.py            | 50    | 0    | 100%  |
+| app/routers/user_routes.py             | 37    | 0    | 100%  |
+| app/schemas/authenticate_schema.py     | 9     | 0    | 100%  |
+| app/schemas/error_schema.py            | 4     | 0    | 100%  |
+| app/schemas/habit_schema.py            | 26    | 0    | 100%  |
+| app/schemas/response.py                | 11    | 0    | 100%  |
+| app/schemas/token_schema.py            | 3     | 0    | 100%  |
+| app/schemas/user_schema.py             | 24    | 0    | 100%  |
+| app/services/auth_service.py           | 25    | 0    | 100%  |
+| app/services/habit_service.py          | 108   | 0    | 100%  |
+| app/services/user_service.py           | 56    | 0    | 100%  |
+| app/utils/database.py                  | 13    | 2    | 85%   |
+| app/utils/security.py                  | 38    | 0    | 100%  |
+| **TOTAL**                              | **564** | **10** | **98%** |
+
 
 ---
 
@@ -61,39 +108,11 @@ http://127.0.0.1:8000/redoc -> Documentação
 Isso irá:
 Construir a imagem do backend (habitsync_app)
 Subir um container PostgreSQL (habitsync_database)
+Rodar as migrations no banco
 Mapear as portas 8000 (API) e 5432 (Postgres)
-```
-
-### 🐍 Rodando localmente
-
-```bash
-1️⃣ Crie e ative o ambiente virtual
-
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-
-2️⃣ Instale as dependências
-
-pip install -r requirements.txt
-
-3️⃣ Configure as variáveis de ambiente
-
-DATABASE_URL=postgresql://user:password@localhost:5432/habitsync
-SECRET_KEY=sua_chave_super_secreta
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-4️⃣ Execute o servidor
-
-uvicorn app.main:app --reload
-
-5️⃣ Acesse a documentação interativa
 
 http://127.0.0.1:8000/docs -> Swagger
 http://127.0.0.1:8000/redoc -> Documentação
-
-* necessário criar o banco de dados e passar no .env
 ```
 ---
 <div align="center">

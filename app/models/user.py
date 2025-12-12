@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import func
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.utils.database import Base
 
 
+@dataclass
 class User(Base):
     __tablename__ = 'users'
 
@@ -25,11 +27,11 @@ class User(Base):
         username: str,
         email: str,
         password: str,
-        active: bool = True,
-        admin: bool = False,
+        is_active: bool = True,
+        is_admin: bool = False,
     ):
         self.username = username
         self.email = email
         self.password = password
-        self.active = active
-        self.admin = admin
+        self.is_active = is_active
+        self.is_admin = is_admin
