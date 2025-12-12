@@ -168,9 +168,7 @@ async def get_upcoming_habits(user: CurrentUser, db: Session):
     response_model=BaseResponse[HabitReturn],
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_200_OK: {
-            'model': BaseResponse[HabitConclusionUnmarkReturn]
-        },
+        status.HTTP_200_OK: {'model': BaseResponse[HabitReturn]},
         status.HTTP_401_UNAUTHORIZED: {'model': ErrorResponse},
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
@@ -191,9 +189,7 @@ async def get_habit_by_id(
     response_model=BaseResponse[HabitReturn],
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_200_OK: {
-            'model': BaseResponse[HabitConclusionUnmarkReturn]
-        },
+        status.HTTP_200_OK: {'model': BaseResponse[HabitReturn]},
         status.HTTP_401_UNAUTHORIZED: {'model': ErrorResponse},
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },

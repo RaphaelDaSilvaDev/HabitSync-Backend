@@ -166,7 +166,7 @@ class HabitService:
         )
 
         if not existing_conclusion:
-            raise BadRequestException('This habit was not conclusion yet')
+            raise ForbiddenException('This habit was not conclusion yet')
 
         await db.delete(existing_conclusion)
         await db.commit()

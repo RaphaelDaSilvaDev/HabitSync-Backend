@@ -173,7 +173,6 @@ async def habit(session: AsyncSession, user):
 
 @pytest_asyncio.fixture
 async def habit_another_user(session: AsyncSession, another_user):
-
     get_days = await session.scalars(select(Day).where(Day.id.in_([1])))
     days = get_days.all()
 
