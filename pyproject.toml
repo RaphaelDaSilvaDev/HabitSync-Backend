@@ -24,7 +24,15 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]
-dev = ["taskipy (>=1.14.1,<2.0.0)", "ruff (>=0.14.8,<0.15.0)"]
+dev = [
+    "taskipy (>=1.14.1,<2.0.0)",
+    "ruff (>=0.14.8,<0.15.0)",
+    "pytest (>=9.0.2,<10.0.0)",
+    "testcontainers[postgres] (>=4.13.3,<5.0.0)",
+    "pytest-asyncio (>=1.3.0,<2.0.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)",
+    "freezegun (>=1.5.5,<2.0.0)",
+]
 
 [tool.poetry]
 package-mode = false
@@ -35,7 +43,7 @@ extend-exclude = ['alembic']
 
 [tool.ruff.lint]
 preview = true
-select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+select = ['I', 'F', 'E', 'W', 'PL', 'PT', 'FAST']
 
 
 [tool.ruff.format]
@@ -47,8 +55,14 @@ quote-style = 'single'
 pythonpath = "."
 addopts = "-p no:warnings"
 
+[tool.coverage.run]
+concurrency = ["thread", "greenlet"]
+
 [tool.taskipy.tasks]
 lint = 'ruff check'
 pre_format = 'ruff check --fix'
 format = 'ruff format'
 run = 'fastapi dev app/main.py'
+pre_test = 'task lint'
+test = 'pytest -s -x --cov=app -vv'
+post_test = 'coverage html'

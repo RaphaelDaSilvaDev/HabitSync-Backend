@@ -1,6 +1,8 @@
+from typing import Annotated
+
 from fastapi import APIRouter, status
 from fastapi.params import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.error_schema import ErrorResponse
@@ -12,10 +14,13 @@ from app.schemas.user_schema import (
     UserUpdate,
 )
 from app.services.user_service import UserService
-from app.utils.auth_login import verify_admin, verify_token
 from app.utils.database import get_db
+from app.utils.security import verify_admin, verify_token
 
 user_router = APIRouter(prefix='/user', tags=['user'])
+
+Session = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(verify_token)]
 
 
 @user_router.post(
@@ -28,12 +33,12 @@ user_router = APIRouter(prefix='/user', tags=['user'])
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def create_user(data: UserCreate, db: Session = Depends(get_db)):
-    created_user = UserService.create_user(data, db)
+async def create_user(data: UserCreate, db: Session):
+    response = await UserService.create_user(data, db)
     return BaseResponse(
         status='success',
         message='User created successfully',
-        data=UserOut.model_validate(created_user),
+        data=UserOut.model_validate(response),
     )
 
 
@@ -47,16 +52,12 @@ async def create_user(data: UserCreate, db: Session = Depends(get_db)):
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def update_user(
-    data: UserUpdate,
-    db: Session = Depends(get_db),
-    user: User = Depends(verify_token),
-):
-    updated_user = UserService.update_user(user.id, data, db)
+async def update_user(data: UserUpdate, db: Session, user: CurrentUser):
+    response = await UserService.update_user(user, data, db)
     return BaseResponse(
         status='success',
         message='User updated successfully',
-        data=UserOut.model_validate(updated_user),
+        data=UserOut.model_validate(response),
     )
 
 
@@ -70,14 +71,12 @@ async def update_user(
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def deactivate_user(
-    db: Session = Depends(get_db), user: User = Depends(verify_token)
-):
-    deactivated_user = UserService.deactivate_user(user.id, db)
+async def deactivate_user(db: Session, user: CurrentUser):
+    response = await UserService.deactivate_user(user, db)
     return BaseResponse(
         status='success',
         message='User deactivated successfully',
-        data=UserOut.model_validate(deactivated_user),
+        data=UserOut.model_validate(response),
     )
 
 
@@ -91,14 +90,12 @@ async def deactivate_user(
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def activate_user(
-    db: Session = Depends(get_db), user: User = Depends(verify_token)
-):
-    activated_user = UserService.activate_user(user.id, db)
+async def activate_user(db: Session, user: CurrentUser):
+    response = await UserService.activate_user(user, db)
     return BaseResponse(
         status='success',
         message='User activated successfully',
-        data=UserOut.model_validate(activated_user),
+        data=UserOut.model_validate(response),
     )
 
 
@@ -111,12 +108,11 @@ async def activate_user(
         status.HTTP_404_NOT_FOUND: {'model': ErrorResponse},
     },
 )
-async def get_user_by_id(
-    user: User = Depends(verify_token), db: Session = Depends(get_db)
-):
-    user = UserService.get_user_by_id(user, db)
+async def get_user(user: CurrentUser, db: Session):
     return BaseResponse(
-        status='success', message='User returned successfully', data=user
+        status='success',
+        message='User returned successfully',
+        data=user,
     )
 
 
@@ -132,10 +128,10 @@ async def get_user_by_id(
     },
     dependencies=[Depends(verify_admin)],
 )
-async def get_all_users(db: Session = Depends(get_db)):
-    all_users = UserService.get_all_users(db)
+async def get_all_users(db: Session):
+    response = await UserService.get_all_users(db)
     return BaseResponse(
         status='success',
-        message='All user returned successfully',
-        data=all_users,
+        message='All users returned successfully',
+        data=response,
     )

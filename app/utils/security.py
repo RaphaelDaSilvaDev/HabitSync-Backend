@@ -1,18 +1,27 @@
+import os
 from datetime import datetime, timedelta, timezone
 
+from dotenv import load_dotenv
 from fastapi.params import Depends
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from passlib.context import CryptContext
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.exceptions.api_exception import UnauthorizedException
-from app.main import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    ALGORITHM,
-    SECRET_KEY,
-    oauth2_schema,
-)
 from app.models.user import User
 from app.utils.database import get_db
+
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES'))
+
+
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+oauth2 = OAuth2PasswordBearer(tokenUrl='auth/login')
 
 
 class AuthLogin:
@@ -30,16 +39,13 @@ class AuthLogin:
         return jwt_token
 
 
-def verify_token(
-    token: str = Depends(oauth2_schema), db: Session = Depends(get_db)
+async def verify_token(
+    token: str = Depends(oauth2), db: Session = Depends(get_db)
 ):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
         user_id: int = int(payload.get('sub'))
-        user = db.query(User).filter(User.id == user_id).first()
-
-        if not user:
-            raise UnauthorizedException('Invalid token or user does not exist')
+        user = await db.scalar(select(User).where(User.id == user_id))
 
         return user
     except jwt.ExpiredSignatureError:
